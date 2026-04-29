@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель VPS Finder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { margin-bottom: 20px; color: #333; }
+        .stats {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #0056b3;
+        }
+        .logout {
+            background: #e74c3c;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Админ-панель VPS Finder</h1>
+        
+        <div class="stats">
+            <div class="stat-item"><strong>📊 Всего серверов:</strong> <span id="totalServers">-</span></div>
+            <div class="stat-item"><strong>🕐 Последнее обновление:</strong> <span id="lastUpdate">-</span></div>
+            <div class="stat-item"><strong>📦 Провайдеров:</strong> <span id="totalProviders">-</span></div>
+        </div>
+        
+        <button onclick="updateData()">🔄 Запустить обновление данных</button>
+        <button class="logout" onclick="logout()">🚪 Выйти</button>
+        
+        <div class="info">
+            💡 <strong>Информация:</strong><br>
+            • Данные обновляются автоматически раз в сутки<br>
+            • Ручное обновление может занять несколько минут<br>
+            • Пароль администратора хранится в файле data/web-password.txt
+        </div>
+    </div>
+    
+    <script>
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const data = await response.json();
+                if (!data.authenticated) {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                window.location.href = '/login';
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                document.getElementById('totalServers').textContent = data.totalServers || 0;
+                document.getElementById('lastUpdate').textContent = data.lastUpdate ? new Date(data.lastUpdate).toLocaleString() : 'Никогда';
+                document.getElementById('totalProviders').textContent = data.totalProviders || 0;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        async function updateData() {
+            if (!confirm('Запустить обновление данных? Это может занять несколько минут.')) return;
+            
+            const btn = document.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = '🔄 Обновление...';
+            
+            try {
+                const response = await fetch('/api/admin/update', { method: 'POST' });
+                if (response.ok) {
+                    alert('Обновление запущено! Данные обновятся в течение нескольких минут.');
+                    setTimeout(() => loadStats(), 5000);
+                }
+            } catch (error) {
+                alert('Ошибка при запуске обновления');
+            }
+            
+            btn.disabled = false;
+            btn.textContent = '🔄 Запустить обновление данных';
+        }
+        
+        function logout() {
+            document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            window.location.href = '/login';
+        }
+        
+        checkAuth();
+        loadStats();
+        setInterval(loadStats, 30000);
+    </script>
+</body>
+</html>
