@@ -19,7 +19,6 @@ detect_os() {
             . /etc/os-release
             OS_NAME=$NAME
             OS_ID=$ID
-            OS_VERSION=$VERSION_ID
         else
             OS_NAME="Linux"
             OS_ID="unknown"
@@ -32,10 +31,6 @@ detect_os() {
         OS="freebsd"
         OS_NAME="FreeBSD"
         OS_ID="freebsd"
-    elif [[ "$OSTYPE" == "openbsd"* ]]; then
-        OS="openbsd"
-        OS_NAME="OpenBSD"
-        OS_ID="openbsd"
     else
         OS="unknown"
         OS_NAME="Unknown"
@@ -48,43 +43,20 @@ detect_package_manager() {
     if command -v dnf &> /dev/null; then
         PM="dnf"
         PM_INSTALL="sudo dnf install -y"
-        PM_UPDATE="sudo dnf check-update"
-        PM_NODEJS="nodejs"
     elif command -v yum &> /dev/null; then
         PM="yum"
         PM_INSTALL="sudo yum install -y"
-        PM_UPDATE="sudo yum check-update"
-        PM_NODEJS="nodejs"
     elif command -v apt &> /dev/null; then
         PM="apt"
         PM_INSTALL="sudo apt-get install -y"
-        PM_UPDATE="sudo apt-get update"
-        PM_NODEJS="nodejs"
     elif command -v brew &> /dev/null; then
         PM="brew"
         PM_INSTALL="brew install"
-        PM_UPDATE="brew update"
-        PM_NODEJS="node"
     elif command -v pacman &> /dev/null; then
         PM="pacman"
         PM_INSTALL="sudo pacman -S --noconfirm"
-        PM_UPDATE="sudo pacman -Sy"
-        PM_NODEJS="nodejs"
-    elif command -v apk &> /dev/null; then
-        PM="apk"
-        PM_INSTALL="sudo apk add"
-        PM_UPDATE="sudo apk update"
-        PM_NODEJS="nodejs"
-    elif command -v pkg &> /dev/null && [[ "$OS" == "freebsd" ]]; then
-        PM="pkg"
-        PM_INSTALL="sudo pkg install -y"
-        PM_UPDATE="sudo pkg update"
-        PM_NODEJS="node"
     else
         PM="unknown"
-        PM_INSTALL=""
-        PM_UPDATE=""
-        PM_NODEJS=""
     fi
 }
 
@@ -106,7 +78,7 @@ generate_password() {
     if command -v openssl &> /dev/null; then
         openssl rand -base64 32 | tr -d "=+/" | tr -d '\n' | cut -c1-$length
     else
-        cat /dev/urandom 2>/dev/null | tr -dc 'a-zA-Z0-9!@#$%^&*' | fold -w $length | head -n 1
+        cat /dev/urandom 2>/dev/null | tr -dc 'a-zA-Z0-9' | fold -w $length | head -n 1
     fi
 }
 
@@ -179,7 +151,7 @@ get_password_with_choice() {
                 break
                 ;;
             *)
-                echo -e "   ${RED}❌ Неверный выбор. Пожалуйста, введите 1, 2 или 3${NC}"
+                echo -e "   ${RED}❌ Неверный выбор. Введите 1, 2 или 3${NC}"
                 ;;
         esac
     done
@@ -190,48 +162,25 @@ get_password_with_choice() {
 # Установка Node.js на RHEL/AlmaLinux/Rocky/CentOS
 install_nodejs_rhel() {
     echo -e "${YELLOW}📦 Установка Node.js 20.x на $OS_NAME...${NC}"
-    
-    # Добавление официального репозитория NodeSource для RHEL
     curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-    
-    if command -v dnf &> /dev/null; then
-        sudo dnf install -y nodejs
-    else
-        sudo yum install -y nodejs
-    fi
+    sudo dnf install -y nodejs
 }
 
 # Установка Node.js на других системах
-install_nodejs_generic() {
-    if [[ "$OS" == "macos" ]]; then
-        if command -v brew &> /dev/null; then
-            brew install node
-        else
-            echo -e "${RED}❌ Для macOS требуется Homebrew. Установите: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"${NC}"
-            exit 1
-        fi
-    elif [[ "$OS" == "freebsd" ]]; then
-        pkg install -y node
-    elif [[ "$OS" == "openbsd" ]]; then
-        pkg_add node
-    else
-        echo -e "${RED}❌ Не удалось определить систему для установки Node.js${NC}"
-        echo -e "${YELLOW}   Установите Node.js 18+ вручную и запустите скрипт снова${NC}"
-        exit 1
-    fi
-}
-
-# Основная установка Node.js
 install_nodejs() {
     echo -e "${YELLOW}📦 Установка Node.js...${NC}"
     
-    if [[ "$OS_ID" == "rhel" ]] || [[ "$OS_ID" == "centos" ]] || [[ "$OS_ID" == "almalinux" ]] || [[ "$OS_ID" == "rocky" ]] || [[ "$OS_ID" == "ol" ]]; then
+    if [[ "$OS_ID" == "rhel" ]] || [[ "$OS_ID" == "centos" ]] || [[ "$OS_ID" == "almalinux" ]] || [[ "$OS_ID" == "rocky" ]]; then
         install_nodejs_rhel
     elif [[ "$OS_ID" == "ubuntu" ]] || [[ "$OS_ID" == "debian" ]]; then
         curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
         sudo apt-get install -y nodejs
+    elif [[ "$OS" == "macos" ]]; then
+        brew install node
     else
-        install_nodejs_generic
+        echo -e "${RED}❌ Не удалось определить систему для установки Node.js${NC}"
+        echo -e "${YELLOW}   Установите Node.js 18+ вручную и запустите скрипт снова${NC}"
+        exit 1
     fi
 }
 
@@ -267,7 +216,6 @@ fi
 NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
 if [ "$NODE_VERSION" -lt 18 ]; then
     echo -e "${RED}❌ Node.js версии 18+ требуется (установлена: $(node -v))${NC}"
-    echo -e "${YELLOW}   Обновите Node.js и запустите скрипт снова${NC}"
     exit 1
 fi
 echo -e "${GREEN}✅ Node.js $(node -v)${NC}"
@@ -283,13 +231,14 @@ echo -e "${GREEN}✅ PM2 установлен${NC}"
 mkdir -p data logs backups
 
 # ============================================================
-# НАСТРОЙКА ПАРОЛЕЙ
+# НАСТРОЙКА ПАРОЛЕЙ (ТОЛЬКО ЗДЕСЬ!)
 # ============================================================
 
 echo -e "\n${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}🔐 НАСТРОЙКА БЕЗОПАСНОСТИ${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 
+# Запрос паролей ТОЛЬКО ОДИН РАЗ
 WEB_PASSWORD=$(get_password_with_choice "ПАРОЛЬ ДЛЯ ВЕБ-ИНТЕРФЕЙСА" 8 16)
 MASTER_PASSWORD=$(get_password_with_choice "МАСТЕР-ПАРОЛЬ УПРАВЛЕНИЯ" 10 20)
 
@@ -318,41 +267,60 @@ chmod 600 data/manage-password.hash
 # Создание скрипта manage-passwords.sh
 cat > manage-passwords.sh << 'EOF'
 #!/bin/bash
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
 WEB_PASS=$(cat data/web-password.txt 2>/dev/null)
-echo -e "\n${BLUE}════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}         🔐 ПАРОЛИ VPS FINDER${NC}"
-echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}🌐 Веб-интерфейс:${NC} логин: admin, пароль: ${YELLOW}$WEB_PASS${NC}"
-echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
+echo -e "\n========================================"
+echo -e "🔐 ПАРОЛЬ VPS FINDER"
+echo -e "========================================"
+echo -e "🌐 Веб-интерфейс: логин: admin, пароль: $WEB_PASS"
+echo -e "========================================"
 EOF
 chmod +x manage-passwords.sh
 
-# Установка зависимостей
+# ============================================================
+# УСТАНОВКА ЗАВИСИМОСТЕЙ И ЗАПУСК
+# ============================================================
+
 echo -e "\n${YELLOW}📦 Установка зависимостей...${NC}"
 npm install --production --no-fund --no-audit
 
-# Запуск приложения
 echo -e "\n${YELLOW}🚀 Запуск приложения...${NC}"
 pm2 start server.js --name vps-finder
 pm2 save
+pm2 startup 2>/dev/null
 
-# Вывод информации
+# Получение IP адреса
 SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 if [ -z "$SERVER_IP" ]; then
-    SERVER_IP=$(ifconfig 2>/dev/null | grep inet | grep -v 127.0.0.1 | head -1 | awk '{print $2}' | cut -d: -f2)
+    SERVER_IP=$(ifconfig 2>/dev/null | grep inet | grep -v 127.0.0.1 | grep -v inet6 | head -1 | awk '{print $2}' | cut -d: -f2)
 fi
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP="localhost"
+fi
+
+# ============================================================
+# ФИНАЛЬНЫЙ ВЫВОД
+# ============================================================
 
 echo -e "\n${GREEN}════════════════════════════════════════════════════════════════${NC}"
 echo -e "${GREEN}✅ УСТАНОВКА ЗАВЕРШЕНА!${NC}"
 echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
 echo -e ""
-echo -e "${CYAN}🌐 ДОСТУП:${NC} http://${SERVER_IP:-localhost}:3000"
-echo -e "${CYAN}🔑 Логин:${NC} admin"
-echo -e "${CYAN}🔐 Пароль:${NC} ${YELLOW}$WEB_PASSWORD${NC}"
+echo -e "${CYAN}🌐 ДОСТУП К ПРИЛОЖЕНИЮ:${NC}"
+echo -e "   URL: ${GREEN}http://${SERVER_IP}:3000${NC}"
+echo -e "   Логин: ${GREEN}admin${NC}"
+echo -e "   Пароль: ${YELLOW}$WEB_PASSWORD${NC}"
 echo -e ""
-echo -e "${CYAN}📋 Команды:${NC}"
-echo -e "   ${GREEN}pm2 status${NC} - статус"
-echo -e "   ${GREEN}pm2 logs vps-finder${NC} - логи"
-echo -e "   ${GREEN}./manage-passwords.sh${NC} - посмотреть пароль"
+echo -e "${CYAN}📋 ПОЛЕЗНЫЕ КОМАНДЫ:${NC}"
+echo -e "   ${GREEN}pm2 status${NC}            - статус приложения"
+echo -e "   ${GREEN}pm2 logs vps-finder${NC}   - просмотр логов"
+echo -e "   ${GREEN}pm2 restart vps-finder${NC} - перезапуск"
+echo -e "   ${GREEN}pm2 stop vps-finder${NC}   - остановка"
+echo -e "   ${GREEN}./manage-passwords.sh${NC}  - посмотреть пароль"
+echo -e "   ${GREEN}cat data/web-password.txt${NC} - показать пароль"
 echo -e ""
+echo -e "${CYAN}💾 ПАРОЛИ СОХРАНЕНЫ В:${NC}"
+echo -e "   ${GREEN}data/web-password.txt${NC}     - пароль для входа на сайт"
+echo -e "   ${GREEN}backups/passwords-*.txt${NC}  - резервная копия"
+echo -e ""
+echo -e "${RED}⚠️  ВАЖНО: Сохраните пароль в надежном месте!${NC}"
+echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
