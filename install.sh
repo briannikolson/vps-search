@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# VPS Finder - Автоматическая установка (Linux/macOS/BSD)
+# VPS Finder - Автоматическая установка (Linux/macOS/BSD/RHEL)
 set -e
 
 # Цвета
@@ -18,49 +18,73 @@ detect_os() {
         if [ -f /etc/os-release ]; then
             . /etc/os-release
             OS_NAME=$NAME
+            OS_ID=$ID
+            OS_VERSION=$VERSION_ID
         else
             OS_NAME="Linux"
+            OS_ID="unknown"
         fi
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         OS="macos"
         OS_NAME="macOS"
+        OS_ID="macos"
     elif [[ "$OSTYPE" == "freebsd"* ]]; then
         OS="freebsd"
         OS_NAME="FreeBSD"
+        OS_ID="freebsd"
     elif [[ "$OSTYPE" == "openbsd"* ]]; then
         OS="openbsd"
         OS_NAME="OpenBSD"
+        OS_ID="openbsd"
     else
         OS="unknown"
         OS_NAME="Unknown"
+        OS_ID="unknown"
     fi
 }
 
 # Определение пакетного менеджера
 detect_package_manager() {
-    if command -v apt &> /dev/null; then
-        PM="apt"
-        PM_INSTALL="sudo apt-get install -y"
-    elif command -v brew &> /dev/null; then
-        PM="brew"
-        PM_INSTALL="brew install"
-    elif command -v dnf &> /dev/null; then
+    if command -v dnf &> /dev/null; then
         PM="dnf"
         PM_INSTALL="sudo dnf install -y"
+        PM_UPDATE="sudo dnf check-update"
+        PM_NODEJS="nodejs"
     elif command -v yum &> /dev/null; then
         PM="yum"
         PM_INSTALL="sudo yum install -y"
+        PM_UPDATE="sudo yum check-update"
+        PM_NODEJS="nodejs"
+    elif command -v apt &> /dev/null; then
+        PM="apt"
+        PM_INSTALL="sudo apt-get install -y"
+        PM_UPDATE="sudo apt-get update"
+        PM_NODEJS="nodejs"
+    elif command -v brew &> /dev/null; then
+        PM="brew"
+        PM_INSTALL="brew install"
+        PM_UPDATE="brew update"
+        PM_NODEJS="node"
     elif command -v pacman &> /dev/null; then
         PM="pacman"
         PM_INSTALL="sudo pacman -S --noconfirm"
+        PM_UPDATE="sudo pacman -Sy"
+        PM_NODEJS="nodejs"
     elif command -v apk &> /dev/null; then
         PM="apk"
         PM_INSTALL="sudo apk add"
+        PM_UPDATE="sudo apk update"
+        PM_NODEJS="nodejs"
     elif command -v pkg &> /dev/null && [[ "$OS" == "freebsd" ]]; then
         PM="pkg"
         PM_INSTALL="sudo pkg install -y"
+        PM_UPDATE="sudo pkg update"
+        PM_NODEJS="node"
     else
         PM="unknown"
+        PM_INSTALL=""
+        PM_UPDATE=""
+        PM_NODEJS=""
     fi
 }
 
@@ -152,20 +176,51 @@ get_password_with_choice() {
     echo "$password"
 }
 
-# Установка Node.js
+# Установка Node.js на RHEL/AlmaLinux/Rocky/CentOS
+install_nodejs_rhel() {
+    echo -e "${YELLOW}📦 Установка Node.js 20.x на $OS_NAME...${NC}"
+    
+    # Добавление официального репозитория NodeSource для RHEL
+    curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+    
+    if command -v dnf &> /dev/null; then
+        sudo dnf install -y nodejs
+    else
+        sudo yum install -y nodejs
+    fi
+}
+
+# Установка Node.js на других системах
+install_nodejs_generic() {
+    if [[ "$OS" == "macos" ]]; then
+        if command -v brew &> /dev/null; then
+            brew install node
+        else
+            echo -e "${RED}❌ Для macOS требуется Homebrew. Установите: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"${NC}"
+            exit 1
+        fi
+    elif [[ "$OS" == "freebsd" ]]; then
+        pkg install -y node
+    elif [[ "$OS" == "openbsd" ]]; then
+        pkg_add node
+    else
+        echo -e "${RED}❌ Не удалось определить систему для установки Node.js${NC}"
+        echo -e "${YELLOW}   Установите Node.js 18+ вручную и запустите скрипт снова${NC}"
+        exit 1
+    fi
+}
+
+# Основная установка Node.js
 install_nodejs() {
     echo -e "${YELLOW}📦 Установка Node.js...${NC}"
     
-    if [[ "$OS" == "macos" ]]; then
-        brew install node
-    elif [[ "$OS" == "freebsd" ]]; then
-        pkg install -y node
-    elif [[ "$OS" == "linux" ]]; then
+    if [[ "$OS_ID" == "rhel" ]] || [[ "$OS_ID" == "centos" ]] || [[ "$OS_ID" == "almalinux" ]] || [[ "$OS_ID" == "rocky" ]] || [[ "$OS_ID" == "ol" ]]; then
+        install_nodejs_rhel
+    elif [[ "$OS_ID" == "ubuntu" ]] || [[ "$OS_ID" == "debian" ]]; then
         curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-        $PM_INSTALL nodejs
+        sudo apt-get install -y nodejs
     else
-        echo -e "${RED}❌ Установите Node.js 18+ вручную${NC}"
-        exit 1
+        install_nodejs_generic
     fi
 }
 
@@ -187,6 +242,12 @@ echo -e "${CYAN}📋 Система: ${GREEN}$OS_NAME${NC}"
 echo -e "${CYAN}📦 Пакетный менеджер: ${GREEN}${PM:-не определен}${NC}"
 echo ""
 
+# Проверка/установка curl
+if ! command -v curl &> /dev/null; then
+    echo -e "${YELLOW}📦 Установка curl...${NC}"
+    $PM_INSTALL curl
+fi
+
 # Установка Node.js
 if ! command -v node &> /dev/null; then
     install_nodejs
@@ -195,6 +256,7 @@ fi
 NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
 if [ "$NODE_VERSION" -lt 18 ]; then
     echo -e "${RED}❌ Node.js версии 18+ требуется (установлена: $(node -v))${NC}"
+    echo -e "${YELLOW}   Обновите Node.js и запустите скрипт снова${NC}"
     exit 1
 fi
 echo -e "${GREEN}✅ Node.js $(node -v)${NC}"
