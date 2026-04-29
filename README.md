@@ -77,7 +77,6 @@ cd vps-finder
 chmod +x install.sh
 ./install.sh
 Что произойдет во время установки
-text
 1. ✅ Определение вашей операционной системы
 2. ✅ Определение пакетного менеджера (apt/brew/dnf/yum/pacman/apk/pkg)
 3. ✅ Проверка/установка Node.js 18+
@@ -94,7 +93,6 @@ text
 Выбор способа создания пароля
 При установке для каждого пароля предлагается 3 варианта:
 
-text
 Выберите способ:
   1) Ввести пароль вручную
   2) Сгенерировать случайный пароль (16 символов)
@@ -117,7 +115,6 @@ cat data/web-password.txt
 # Способ 3: Просмотр в .env файле
 grep ACCESS_PASSWORD .env
 Смена пароля для веб-интерфейса
-bash
 nano data/web-password.txt
 nano .env  # измените ACCESS_PASSWORD
 pm2 restart vps-finder
@@ -128,7 +125,6 @@ data/manage-password.hash	Хеш мастер-пароля	600
 .env	ACCESS_PASSWORD + JWT_SECRET	600
 backups/passwords-*.txt	Резервная копия паролей	600
 Резервное копирование паролей
-bash
 cp data/web-password.txt backups/web-password-$(date +%Y%m%d).backup
 cp .env backups/env-$(date +%Y%m%d).backup
 📋 Команды для управления
@@ -144,7 +140,6 @@ pm2 restart vps-finder	Перезапуск
 pm2 stop vps-finder	Остановка
 pm2 delete vps-finder	Удаление из PM2
 📁 Структура проекта
-text
 vps-finder/
 ├── .env.example              # Пример конфигурации
 ├── .gitignore                # Игнорируемые файлы
@@ -165,6 +160,7 @@ vps-finder/
 │   └── admin.html            # Админ-панель
 ├── data/                     # Данные (создаётся при установке)
 └── backups/                  # Резервные копии
+
 🛡️ Безопасность
 Защита	Описание	Статус
 Helmet	Безопасные HTTP заголовки	✅
@@ -186,52 +182,42 @@ CORS	Ограничение доменов	✅
 Не публикуйте файл .env в публичный доступ
 
 Настройка брандмауэра (ufw)
-bash
 sudo ufw allow 22/tcp
 sudo ufw allow 3000/tcp
 sudo ufw enable
 🔧 Установка на разных ОС
 Ubuntu / Debian
-bash
 sudo apt update && sudo apt install -y git curl
 git clone https://github.com/yourusername/vps-finder.git
 cd vps-finder && ./install.sh
 CentOS / RHEL / Fedora
-bash
 sudo dnf install -y git curl
 git clone https://github.com/yourusername/vps-finder.git
 cd vps-finder && ./install.sh
 Arch Linux
-bash
 sudo pacman -S git curl
 git clone https://github.com/yourusername/vps-finder.git
 cd vps-finder && ./install.sh
 Alpine Linux
-bash
 apk add git bash curl
 git clone https://github.com/yourusername/vps-finder.git
 cd vps-finder && ./install.sh
 macOS
-bash
 brew install git
 git clone https://github.com/yourusername/vps-finder.git
 cd vps-finder && ./install.sh
 FreeBSD
-bash
 pkg install git bash
 git clone https://github.com/yourusername/vps-finder.git
 cd vps-finder && ./install.sh
 🔄 Обновление приложения
-bash
 ./update.sh
 Или вручную:
-bash
 git pull origin main
 npm install --production
 npm run update
 pm2 restart vps-finder
 Настройка автоматических обновлений (cron)
-bash
 crontab -e
 # Добавить: 0 3 * * * cd /path/to/vps-finder && ./update.sh >> logs/update.log 2>&1
 📊 Источники данных
@@ -280,7 +266,6 @@ pm2: command not found	npm install -g pm2
 🤝 Лицензия
 MIT License
 
-text
 Copyright (c) 2024 VPS Finder
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
