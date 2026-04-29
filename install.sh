@@ -118,7 +118,7 @@ generate_readable_password() {
     echo "${words[$((RANDOM % ${#words[@]}))]}-${words[$((RANDOM % ${#words[@]}))]}-${nums}"
 }
 
-# Функция выбора способа ввода пароля
+# Функция выбора способа ввода пароля (С ПОДСКАЗКАМИ)
 get_password_with_choice() {
     local purpose="$1"
     local min_length="$2"
@@ -127,17 +127,20 @@ get_password_with_choice() {
     echo -e "\n${CYAN}📌 ${purpose}${NC}"
     
     while true; do
-        echo -e "${BLUE}   Выберите способ:${NC}"
-        echo -e "   ${GREEN}1${NC}) Ввести пароль вручную"
-        echo -e "   ${GREEN}2${NC}) Сгенерировать случайный пароль (${default_length} символов)"
-        echo -e "   ${GREEN}3${NC}) Сгенерировать читаемый пароль"
-        
-        read -p "   Ваш выбор [1-3]: " choice
+        echo -e "${BLUE}   ╔══════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BLUE}   ║  Выберите способ создания пароля:                            ║${NC}"
+        echo -e "${BLUE}   ╠══════════════════════════════════════════════════════════════╣${NC}"
+        echo -e "${BLUE}   ║  ${GREEN}1${NC}) Ввести пароль вручную (минимум ${min_length} символов)               ${BLUE}║${NC}"
+        echo -e "${BLUE}   ║  ${GREEN}2${NC}) Сгенерировать случайный пароль (${default_length} символов)             ${BLUE}║${NC}"
+        echo -e "${BLUE}   ║  ${GREEN}3${NC}) Сгенерировать читаемый пароль (легко запомнить)         ${BLUE}║${NC}"
+        echo -e "${BLUE}   ╚══════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        read -p "   ➤ Ваш выбор [1-3]: " choice
         
         case $choice in
             1)
                 while true; do
-                    password=$(read_password "   Введите пароль: ")
+                    password=$(read_password "   ➤ Введите пароль: ")
                     if [ -z "$password" ]; then
                         echo -e "   ${RED}❌ Пароль не может быть пустым${NC}"
                         continue
@@ -146,7 +149,7 @@ get_password_with_choice() {
                         echo -e "   ${RED}❌ Пароль должен содержать минимум $min_length символов${NC}"
                         continue
                     fi
-                    confirm=$(read_password "   Повторите пароль: ")
+                    confirm=$(read_password "   ➤ Повторите пароль: ")
                     if [ "$password" != "$confirm" ]; then
                         echo -e "   ${RED}❌ Пароли не совпадают${NC}"
                     else
@@ -157,18 +160,26 @@ get_password_with_choice() {
                 ;;
             2)
                 password=$(generate_password $default_length)
-                echo -e "   ${GREEN}✅ Сгенерирован пароль: ${CYAN}${password}${NC}"
-                read -p "   Нажмите Enter..."
+                echo -e "\n   ${GREEN}✅ Сгенерирован случайный пароль:${NC}"
+                echo -e "   ${CYAN}   ┌─────────────────────────────────────────────────────────┐${NC}"
+                echo -e "   ${CYAN}   │  ${YELLOW}${password}${NC}${CYAN}  │${NC}"
+                echo -e "   ${CYAN}   └─────────────────────────────────────────────────────────┘${NC}"
+                echo -e "   ${YELLOW}⚠️  Сохраните этот пароль в надежном месте!${NC}"
+                read -p "   ➤ Нажмите Enter, чтобы продолжить..."
                 break
                 ;;
             3)
                 password=$(generate_readable_password)
-                echo -e "   ${GREEN}✅ Сгенерирован пароль: ${CYAN}${password}${NC}"
-                read -p "   Нажмите Enter..."
+                echo -e "\n   ${GREEN}✅ Сгенерирован читаемый пароль:${NC}"
+                echo -e "   ${CYAN}   ┌─────────────────────────────────────────────────────────┐${NC}"
+                echo -e "   ${CYAN}   │  ${YELLOW}${password}${NC}${CYAN}  │${NC}"
+                echo -e "   ${CYAN}   └─────────────────────────────────────────────────────────┘${NC}"
+                echo -e "   ${YELLOW}⚠️  Сохраните этот пароль в надежном месте!${NC}"
+                read -p "   ➤ Нажмите Enter, чтобы продолжить..."
                 break
                 ;;
             *)
-                echo -e "   ${RED}❌ Неверный выбор${NC}"
+                echo -e "   ${RED}❌ Неверный выбор. Пожалуйста, введите 1, 2 или 3${NC}"
                 ;;
         esac
     done
