@@ -1,0 +1,57 @@
+# Зависимости
+node_modules/
+
+# Данные (не коммитим)
+data/*.json
+data/*.db
+data/*.hash
+data/*.txt
+!data/.gitkeep
+
+# Логи
+logs/
+*.log
+npm-debug.log*
+pm2-*.log
+
+# Переменные окружения
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Файлы IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+.directory
+.desktop.ini
+
+# Бэкапы
+backups/*.tar.gz
+backups/*.txt
+!backups/.gitkeep
+
+# PM2
+.pm2/
+
+# История команд
+.bash_history
+.zsh_history
+
+# Временные файлы
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Секреты
+*.key
+*.pem
+*.crt
