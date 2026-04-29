@@ -3,134 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ-панель VPS Finder</title>
+    <title>VPS Finder - Поиск VPS серверов</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
         }
         .container {
-            max-width: 800px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
         }
-        h1 { margin-bottom: 20px; color: #333; }
-        .stats {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
+        header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border: none;
+            padding: 40px;
+            text-align: center;
+        }
+        header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .search-section {
+            padding: 25px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .search-box { flex: 2; min-width: 200px; }
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
             border-radius: 10px;
             font-size: 16px;
+        }
+        .filter-group { flex: 2; display: flex; gap: 10px; flex-wrap: wrap; }
+        select {
+            flex: 1;
+            min-width: 130px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: white;
             cursor: pointer;
         }
-        .info {
-            background: #e8f4fd;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #0056b3;
+        .stats-bar {
+            padding: 12px 25px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
         }
-        .logout {
-            background: #e74c3c;
+        .stat-item {
+            background: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+        .servers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            padding: 25px;
+        }
+        .server-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .server-card:hover { transform: translateY(-3px); }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+        }
+        .country-flag { font-size: 2em; margin-bottom: 5px; }
+        .card-header h3 { font-size: 1.2em; }
+        .provider { opacity: 0.9; font-size: 0.8em; margin-top: 5px; }
+        .card-body { padding: 15px; }
+        .spec-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+        .price {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
             margin-top: 10px;
+        }
+        .price-amount { font-size: 1.5em; font-weight: bold; color: #667eea; }
+        .loading { text-align: center; padding: 50px; color: #999; }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔐 Админ-панель VPS Finder</h1>
+        <header>
+            <h1>🌍 VPS Finder</h1>
+            <p>Поиск VPS серверов по всему миру</p>
+        </header>
         
-        <div class="stats">
-            <div class="stat-item"><strong>📊 Всего серверов:</strong> <span id="totalServers">-</span></div>
-            <div class="stat-item"><strong>🕐 Последнее обновление:</strong> <span id="lastUpdate">-</span></div>
-            <div class="stat-item"><strong>📦 Провайдеров:</strong> <span id="totalProviders">-</span></div>
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Поиск по стране или провайдеру...">
+            </div>
+            <div class="filter-group">
+                <select id="continentFilter">
+                    <option value="all">🌍 Все континенты</option>
+                    <option value="Europe">🇪🇺 Европа</option>
+                    <option value="Global">🌐 Глобально</option>
+                </select>
+                <select id="sortBy">
+                    <option value="price-asc">💰 Цена: по возрастанию</option>
+                    <option value="price-desc">💰 Цена: по убыванию</option>
+                </select>
+            </div>
         </div>
         
-        <button onclick="updateData()">🔄 Запустить обновление данных</button>
-        <button class="logout" onclick="logout()">🚪 Выйти</button>
+        <div class="stats-bar">
+            <div class="stat-item">📡 <span id="serverCount">0</span> серверов</div>
+            <div class="stat-item">🕐 Обновлено: <span id="lastUpdate">-</span></div>
+        </div>
         
-        <div class="info">
-            💡 <strong>Информация:</strong><br>
-            • Данные обновляются автоматически раз в сутки<br>
-            • Ручное обновление может занять несколько минут<br>
-            • Пароль администратора хранится в файле data/web-password.txt
+        <div id="serversList" class="servers-grid">
+            <div class="loading"><div class="spinner"></div><p>Загрузка...</p></div>
         </div>
     </div>
     
     <script>
-        async function checkAuth() {
+        async function loadServers() {
+            const search = document.getElementById('searchInput').value;
+            const continent = document.getElementById('continentFilter').value;
+            const sort = document.getElementById('sortBy').value;
+            
+            let url = `/api/servers?sort=${sort}`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+            if (continent !== 'all') url += `&continent=${continent}`;
+            
             try {
-                const response = await fetch('/api/auth/check');
+                const response = await fetch(url);
                 const data = await response.json();
-                if (!data.authenticated) {
-                    window.location.href = '/login';
-                }
-            } catch (error) {
-                window.location.href = '/login';
-            }
-        }
-        
-        async function loadStats() {
-            try {
-                const response = await fetch('/api/stats');
-                const data = await response.json();
-                document.getElementById('totalServers').textContent = data.totalServers || 0;
-                document.getElementById('lastUpdate').textContent = data.lastUpdate ? new Date(data.lastUpdate).toLocaleString() : 'Никогда';
-                document.getElementById('totalProviders').textContent = data.totalProviders || 0;
+                renderServers(data);
             } catch (error) {
                 console.error('Error:', error);
             }
         }
         
-        async function updateData() {
-            if (!confirm('Запустить обновление данных? Это может занять несколько минут.')) return;
+        function renderServers(data) {
+            const container = document.getElementById('serversList');
+            document.getElementById('serverCount').textContent = data.total || 0;
+            document.getElementById('lastUpdate').textContent = data.lastUpdate ? new Date(data.lastUpdate).toLocaleDateString() : '-';
             
-            const btn = document.querySelector('button');
-            btn.disabled = true;
-            btn.textContent = '🔄 Обновление...';
-            
-            try {
-                const response = await fetch('/api/admin/update', { method: 'POST' });
-                if (response.ok) {
-                    alert('Обновление запущено! Данные обновятся в течение нескольких минут.');
-                    setTimeout(() => loadStats(), 5000);
-                }
-            } catch (error) {
-                alert('Ошибка при запуске обновления');
+            if (!data.servers || data.servers.length === 0) {
+                container.innerHTML = '<div class="loading">😕 Серверы не найдены</div>';
+                return;
             }
             
-            btn.disabled = false;
-            btn.textContent = '🔄 Запустить обновление данных';
+            container.innerHTML = data.servers.map(server => `
+                <div class="server-card" onclick="alert('${server.provider} - ${server.country}\nCPU: ${server.cpu}\nRAM: ${server.ram}\nStorage: ${server.storage}\nBandwidth: ${server.bandwidth}\nPrice: $${server.price}/мес')">
+                    <div class="card-header">
+                        <div class="country-flag">${server.flag || '🌍'}</div>
+                        <h3>${server.country}</h3>
+                        <div class="provider">${server.provider}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="spec-item"><span>💻 CPU:</span><span>${server.cpu}</span></div>
+                        <div class="spec-item"><span>🧠 RAM:</span><span>${server.ram}</span></div>
+                        <div class="spec-item"><span>💾 Storage:</span><span>${server.storage}</span></div>
+                        <div class="price"><div class="price-amount">$${server.price?.toFixed(2) || '?'}</div><div>за месяц</div></div>
+                    </div>
+                </div>
+            `).join('');
         }
         
-        function logout() {
-            document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            window.location.href = '/login';
-        }
+        let timeout;
+        document.getElementById('searchInput').addEventListener('input', () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(loadServers, 300);
+        });
+        document.getElementById('continentFilter').addEventListener('change', loadServers);
+        document.getElementById('sortBy').addEventListener('change', loadServers);
         
-        checkAuth();
-        loadStats();
-        setInterval(loadStats, 30000);
+        loadServers();
     </script>
 </body>
 </html>
